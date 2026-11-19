@@ -1,37 +1,3 @@
-import os
-from flask import Flask, jsonify, request
-
-app = Flask(__name__)
-
-VERSION = os.environ.get("APP_VERSION", "dev")
-ITEMS = []  # in-memory only; resets on restart (fine for a CI/CD demo)
-
-
-@app.get("/")
-def index():
-    return jsonify(service="cloudrun-cicd-demo", version=VERSION)
-
-
-@app.get("/health")
-def health():
-    return jsonify(status="ok"), 200
-
-
-@app.get("/api/items")
-def list_items():
-    return jsonify(items=ITEMS)
-
-
-@app.post("/api/items")
-def add_item():
-    data = request.get_json(silent=True) or {}
-    name = data.get("name")
-    if not name or not isinstance(name, str):
-        return jsonify(error="'name' (string) is required"), 400
-    item = {"id": len(ITEMS) + 1, "name": name}
-    ITEMS.append(item)
-    return jsonify(item), 201
-
 import json
 import logging
 import os
@@ -52,7 +18,6 @@ class CloudLoggingFormatter(logging.Formatter):
             "app_version": os.getenv("APP_VERSION", "dev"),
             "timestamp": self.formatTime(record, self.datefmt),
         }
-        # Merge structured fields passed via extra={"json_fields": {...}}
         if hasattr(record, "json_fields") and isinstance(record.json_fields, dict):
             log_entry.update(record.json_fields)
         if record.exc_info:
@@ -74,7 +39,6 @@ def configure_logging() -> logging.Logger:
 logger = configure_logging()
 app = Flask(__name__)
 
-# In-memory store for demo items
 ITEMS = []
 
 
@@ -90,7 +54,6 @@ def log_request(response):
     response.headers["X-Request-Id"] = g.request_id
     response.headers["X-Response-Time-Ms"] = str(latency_ms)
 
-    # Map HTTP status codes to Cloud Logging severity levels
     if response.status_code >= 500:
         level = logging.ERROR
     elif response.status_code >= 400:
@@ -158,6 +121,40 @@ def create_item():
     item = {"id": len(ITEMS) + 1, "name": name}
     ITEMS.append(item)
     return jsonify(item), 201
+
+
+@app.get("/slow")
+def slow():
+    """Simulates configurable latency (clamped between 0 and 5000ms) for SLO testing."""
+    try:
+        delay_ms = int(request.args.get("ms", "500"))
+    except ValueError:
+        return jsonify({"error": "Parameter 'ms' must be an integer"}), 400
+
+    clamped_ms = max(0, min(delay_ms, 5000))
+    time.sleep(clamped_ms / 1000.0)
+    return jsonify(
+        {
+            "status": "delayed",
+            "requested_ms": delay_ms,
+            "applied_ms": clamped_ms,
+        }
+    ), 200
+
+
+@app.get("/fail")
+def fail():
+    """Simulates a controlled 500 server error to test Cloud Logging ERROR severity and alerts."""
+    logger.error(
+        "Simulated internal server failure triggered on /fail",
+        extra={"json_fields": {"request_id": g.request_id, "fault_type": "simulated_500"}},
+    )
+    return jsonify(
+        {
+            "error": "Simulated internal server error",
+            "request_id": g.request_id,
+        }
+    ), 500
 
 
 if __name__ == "__main__":
