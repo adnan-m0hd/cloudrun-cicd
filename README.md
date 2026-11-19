@@ -29,7 +29,7 @@ Developer Push / PR
   ├─ Artifact Registry (Docker image storage)
   └─ Cloud Run v2 (Least-privilege runtime SA)
 
-## Security & DevOps Design Decisions
+Security & DevOps Design Decisions
 
 Zero Long-Lived Credentials (Keyless Auth): Uses ephemeral OIDC tokens (GITHUB_TOKEN for GHCR and GCP Workload Identity Federation in terraform/wif.tf) rather than static JSON service account keys.
 
@@ -43,7 +43,7 @@ Immutable Commit-SHA Tagging: Every build is tagged with ${{ github.sha }} for d
 
 Automated Smoke Testing: Deployments are verified against /health and / before the workflow succeeds.
 
-## Repository Structure
+Repository Structure
 cloudrun-cicd/
 ├── .github/workflows/deploy.yml  # Tests, Terraform validation, GHCR push & smoke test
 ├── app/                          # Flask/Gunicorn API & pytest suite
@@ -51,7 +51,7 @@ cloudrun-cicd/
 ├── Dockerfile                    # Hardened non-root production container
 └── .dockerignore                 # Excludes local virtual environments and git metadata
 
-## Local Setup & Verification
+Local Setup & Verification
 # 1. Run unit tests
 python -m venv .venv
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
