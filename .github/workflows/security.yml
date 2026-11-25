@@ -30,7 +30,7 @@ jobs:
       - name: Build local Docker image
         run: docker build -t cloudrun-cicd:scan .
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: "cloudrun-cicd:scan"
           format: "table"
