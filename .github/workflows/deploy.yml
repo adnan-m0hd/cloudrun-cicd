@@ -34,7 +34,7 @@ jobs:
           pytest app
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
 
       - name: Terraform Format & Validate
         working-directory: terraform
